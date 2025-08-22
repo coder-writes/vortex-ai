@@ -6,7 +6,6 @@ import fs from "fs";
 import pdf from "pdf-parse/lib/pdf-parse.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Inisialisasi klien Google Gemini
 const AI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export const generateArticle = async (req, res) => {
@@ -16,11 +15,9 @@ export const generateArticle = async (req, res) => {
     const plan = req.plan;
     const free_usage = req.free_usage;
 
-    // Log input untuk debugging
     console.log("Request Body:", JSON.stringify(req.body, null, 2));
     console.log("User Info:", { userId, plan, free_usage });
 
-    // Cek limit penggunaan untuk pengguna non-premium
     if (plan !== "premium" && free_usage >= 10) {
       return res.json({
         success: false,
@@ -28,12 +25,11 @@ export const generateArticle = async (req, res) => {
       });
     }
 
-    // Validasi length
     let maxTokens;
     if (typeof length === "object" && length !== null && "length" in length) {
-      maxTokens = parseInt(length.length, 10); // Ambil length.length dari objek
+      maxTokens = parseInt(length.length, 10); 
     } else {
-      maxTokens = parseInt(length, 10); // Langsung parse jika length adalah angka atau string
+      maxTokens = parseInt(length, 10); 
     }
 
     if (isNaN(maxTokens) || maxTokens <= 0) {
@@ -45,10 +41,10 @@ export const generateArticle = async (req, res) => {
 
     console.log("Validated maxTokens:", maxTokens);
 
-    // Inisialisasi model Gemini
-    const model = AI.getGenerativeModel({ model: "gemini-1.5-flash" });
+   
+    const model = AI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // Buat artikel dari prompt menggunakan AI
+
     const result = await model.generateContent({
       contents: [
         { role: "user", parts: [{ text: `System: You are a helpful assistant.\nUser: ${prompt}` }] },
@@ -60,9 +56,8 @@ export const generateArticle = async (req, res) => {
     });
 
     const content = result.response.text();
-    console.log("Gemini API Response:", content.substring(0, 100) + "..."); // Log sebagian respons untuk debugging
+    // console.log("Gemini API Response:", content.substring(0, 100) + "..."); 
 
-    // Simpan hasil ke database
     try {
       await sql`
         INSERT INTO creations (user_id, prompt, content, type)
@@ -74,7 +69,7 @@ export const generateArticle = async (req, res) => {
       throw new Error("Failed to save to database: " + dbError.message);
     }
 
-    // Update penggunaan untuk user non-premium
+  
     if (plan !== "premium") {
       try {
         await clerkClient.users.updateUserMetadata(userId, {
@@ -87,7 +82,7 @@ export const generateArticle = async (req, res) => {
       }
     }
 
-    // Kirim respons berhasil
+    
     return res.json({ success: true, content });
   } catch (error) {
     console.error("Error in generateArticle:", JSON.stringify(error, null, 2));
@@ -102,7 +97,7 @@ export const generateBlogTitle = async (req, res) => {
     const plan = req.plan;
     const free_usage = req.free_usage;
 
-    // Log input untuk debugging
+   
     console.log("Request Body:", JSON.stringify(req.body, null, 2));
 
     if (plan !== "premium" && free_usage >= 10) {
@@ -112,24 +107,22 @@ export const generateBlogTitle = async (req, res) => {
       });
     }
 
-    // Inisialisasi model Gemini
-    const model = AI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const model = AI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // Buat judul blog
     const result = await model.generateContent({
       contents: [
         { role: "user", parts: [{ text: `System: You are a helpful assistant.\nUser: ${prompt}` }] },
       ],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 100,
+        maxOutputTokens: 10000,
       },
     });
 
     const content = result.response.text();
-    console.log("Gemini API Response:", content.substring(0, 100) + "...");
+    // console.log("Gemini API Response:", content.substring(0, 100) + "...");
 
-    // Simpan hasil ke database
     try {
       await sql`
         INSERT INTO creations (user_id, prompt, content, type)
@@ -141,7 +134,7 @@ export const generateBlogTitle = async (req, res) => {
       throw new Error("Failed to save to database: " + dbError.message);
     }
 
-    // Update penggunaan untuk user non-premium
+   
     if (plan !== "premium") {
       try {
         await clerkClient.users.updateUserMetadata(userId, {
@@ -154,7 +147,7 @@ export const generateBlogTitle = async (req, res) => {
       }
     }
 
-    // Kirim respons berhasil
+  
     return res.json({ success: true, content });
   } catch (error) {
     console.error("Error in generateBlogTitle:", JSON.stringify(error, null, 2));
@@ -197,7 +190,6 @@ export const generateImage = async (req, res) => {
 
     const { secure_url } = await cloudinary.uploader.upload(base64Image);
 
-    // Simpan hasil ke database
     try {
       await sql`
         INSERT INTO creations (user_id, prompt, content, type, publish)
@@ -209,7 +201,7 @@ export const generateImage = async (req, res) => {
       throw new Error("Failed to save to database: " + dbError.message);
     }
 
-    // Kirim respons berhasil
+   
     return res.json({ success: true, content: secure_url });
   } catch (error) {
     console.error("Error in generateImage:", JSON.stringify(error, null, 2));
@@ -241,7 +233,6 @@ export const removeImageBackground = async (req, res) => {
       ],
     });
 
-    // Simpan hasil ke database
     try {
       await sql`
         INSERT INTO creations (user_id, prompt, content, type)
@@ -253,7 +244,6 @@ export const removeImageBackground = async (req, res) => {
       throw new Error("Failed to save to database: " + dbError.message);
     }
 
-    // Kirim respons berhasil
     return res.json({ success: true, content: secure_url });
   } catch (error) {
     console.error("Error in removeImageBackground:", JSON.stringify(error, null, 2));
@@ -284,8 +274,6 @@ export const removeImageObject = async (req, res) => {
       transformation: [{ effect: `gen_remove:${object}` }],
       resource_type: "image",
     });
-
-    // Simpan hasil ke database
     try {
       await sql`
         INSERT INTO creations (user_id, prompt, content, type)
@@ -297,7 +285,6 @@ export const removeImageObject = async (req, res) => {
       throw new Error("Failed to save to database: " + dbError.message);
     }
 
-    // Kirim respons berhasil
     return res.json({ success: true, content: imageUrl });
   } catch (error) {
     console.error("Error in removeImageObject:", JSON.stringify(error, null, 2));
@@ -311,7 +298,6 @@ export const resumeReview = async (req, res) => {
     const resume = req.file;
     const plan = req.plan;
 
-    // Log input untuk debugging
     console.log("Resume File:", JSON.stringify(resume, null, 2));
     console.log("User Info:", { userId, plan });
 
@@ -331,10 +317,8 @@ export const resumeReview = async (req, res) => {
 
     const prompt = `Review the following resume and provide constructive feedback on its strengths, weaknesses, and areas for improvement. Resume content:\n\n${pdfData.text}`;
 
-    // Inisialisasi model Gemini
     const model = AI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // Review resume
     const result = await model.generateContent({
       contents: [
         { role: "user", parts: [{ text: prompt }] },
@@ -347,8 +331,6 @@ export const resumeReview = async (req, res) => {
 
     const content = result.response.text();
     console.log("Gemini API Response:", content.substring(0, 100) + "...");
-
-    // Simpan hasil ke database
     try {
       await sql`
         INSERT INTO creations (user_id, prompt, content, type)
@@ -360,7 +342,6 @@ export const resumeReview = async (req, res) => {
       throw new Error("Failed to save to database: " + dbError.message);
     }
 
-    // Kirim respons berhasil
     return res.json({ success: true, content });
   } catch (error) {
     console.error("Error in resumeReview:", JSON.stringify(error, null, 2));

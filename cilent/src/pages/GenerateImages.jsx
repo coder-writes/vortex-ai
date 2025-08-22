@@ -63,7 +63,7 @@ const GenerateImages = () => {
           value={input}
           rows={4}
           className="w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300"
-          placeholder="Jelaskan mau gambar apa..."
+          placeholder="Describe your image"
           required
         />
 
