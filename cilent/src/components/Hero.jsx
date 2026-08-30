@@ -24,9 +24,9 @@ const Hero = () => {
         Contact us
         </button>
       </div>
-      <div className="flex items-center gap-4 mt-8 mx-auto text-gray-600">
+      {/* <div className="flex items-center gap-4 mt-8 mx-auto text-gray-600">
         <img src={assets.user_group} className="h-8" alt="User group" /> Trusted by 10,000+ creators
-      </div>
+      </div> */}
     </div>
   );
 };
